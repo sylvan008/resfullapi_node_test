@@ -18,6 +18,9 @@ const server = http.createServer((req, res) => {
 	const path = reqUrl.pathname;
 	const trimmedPath = path.replace(/^\/|\/$/g, '');
 
+	// Get the query
+	const searchParams = new URLSearchParams(reqUrl.searchParams);
+
 	// Get the method
 	const method = req.method.toLowerCase();
 
@@ -25,7 +28,7 @@ const server = http.createServer((req, res) => {
 	res.end('Hello!\n');
 
 	// Log the request path
-	console.log(`Request received on path: ${trimmedPath} with method ${method}`);
+	console.log(`Request received on path: ${trimmedPath} with method ${method} and query parameters: ${searchParams}`);
 });
 
 server.listen(PORT, HOST, () => {

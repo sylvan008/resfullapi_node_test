@@ -5,6 +5,7 @@
 // dependencies
 const http = require('http');
 const { URL } = require('url');
+const { StringDecoder } = require('string_decoder');
 
 const HOST = 'localhost';
 const PORT = 3000;
@@ -27,11 +28,29 @@ const server = http.createServer((req, res) => {
 	// Get the headers
 	const headers = req.headers;
 
-	// Send the response
-	res.end('Hello!\n');
+	// Get payloads
+	let payload = '';
+	const decoder = new StringDecoder('utf-8');
+	req.on('data', (data) => {
+		payload += decoder.write(data);
+	});
 
-	// Log the request path
-	console.log(`Request received with the headers`, headers);
+	req.on('end', () => {
+		payload += decoder.end();
+		let body;
+
+		try {
+			body = JSON.parse(payload);
+		} catch (error) {
+			body = error;
+		}
+
+		// Send the response
+		res.end('Hello!\n');
+
+		// Log the request path
+		console.log(`Response:\n`, body);
+	});
 });
 
 server.listen(PORT, HOST, () => {

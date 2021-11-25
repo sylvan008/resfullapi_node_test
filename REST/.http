@@ -1,9 +1,8 @@
-POST http://localhost:3000
+POST http://localhost:3000/samplec?lang=ru
 Content-Type: application/json
 
 {
 	"developers": [
-		"name": "test",
 		{
 			"name": "test",
 			"age": 34,

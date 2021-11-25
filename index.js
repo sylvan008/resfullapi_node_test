@@ -6,9 +6,12 @@
 const http = require('http');
 const { URL } = require('url');
 const { StringDecoder } = require('string_decoder');
+const { TypeStrings, RequestEvents, StatusCodes } = require('./utils/const');
+const router = require('./router/router');
 
 const HOST = 'localhost';
 const PORT = 3000;
+const ENCODING = 'utf-8';
 
 const server = http.createServer((req, res) => {
 	// Get the url
@@ -30,12 +33,13 @@ const server = http.createServer((req, res) => {
 
 	// Get payloads
 	let payload = '';
-	const decoder = new StringDecoder('utf-8');
-	req.on('data', (data) => {
+	const decoder = new StringDecoder(ENCODING);
+
+	req.on(RequestEvents.DATA, (data) => {
 		payload += decoder.write(data);
 	});
 
-	req.on('end', () => {
+	req.on(RequestEvents.END, () => {
 		payload += decoder.end();
 		let body;
 
@@ -45,11 +49,45 @@ const server = http.createServer((req, res) => {
 			body = error;
 		}
 
-		// Send the response
-		res.end('Hello!\n');
+		// Choose the handler this request should go to.
+		// If one is not found, use the notFound handler.
+		const chosenHandler = typeof(router[trimmedPath]) !== TypeStrings.UNDEFINED
+			? router[trimmedPath]
+			: router.notFound;
 
-		// Log the request path
-		console.log(`Response:\n`, body);
+		// Construct the data object to send to the handlers
+		const data = {
+			method,
+			headers,
+			body,
+			query: searchParams.toString(),
+			path: trimmedPath,
+		};
+
+		// Route the request to the handler specified in the router
+		chosenHandler(data, (statusCode, payload) => {
+			// Use the status code called back by the handler, or default to 200
+			statusCode = typeof(statusCode) === TypeStrings.NUMBER ? statusCode : StatusCodes.OK;
+
+			// use the payload called back by the handler or default to an empty object
+			payload = typeof(payload) === TypeStrings.OBJECT ? payload : {};
+
+			let payloadString = '';
+
+			// Convert payload to a string
+			try {
+				payloadString = JSON.stringify(payload);
+			} catch (e) {
+				payloadString = e;
+			}
+
+			// Return the response
+			res.writeHead(statusCode);
+			res.end(payloadString);
+
+			// Log the request path
+			console.log(`Returning this response:\n`, statusCode, payloadString, '\n');
+		});
 	});
 });
 
